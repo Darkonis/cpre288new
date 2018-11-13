@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 void scan();
+void turn_angle(int angle,int power, oi_t *sensor_data);
 typedef struct thing {
     char width;
     char start_angle;
@@ -21,21 +22,29 @@ typedef struct thing {
     char dist_2;
 } thing_t;
 int last_dist=0;
+//dont use cybot 6!! it dosnt handle
 void main() {
-       button_init();
+
+    oi_t *sensor_data = oi_alloc();
+                       oi_init(sensor_data);
+
+                       oi_setWheels(0,0);//stop
+                        //button_init();
            servo_init();
            ultrasonic_init();
            uart_init();
            lcd_init();
-           oi_t *sensor_data = oi_alloc();
-                    oi_init(sensor_data);
-                    scan();
+            //           scan();
+                       turn_angle(90,100,sensor_data);
+                       oi_setWheels(0,0);//stop
+                       turn_angle(-90,100,sensor_data);
+                       oi_setWheels(0,0);//stop
        //calibrate();
 while (1)
 {
-           int byte =cyBot_getByte();
-                      cyBot_sendByte(byte);//send the byte
-                      cyBot_sendByte('\r');//send the byte
+            int byte =uart_receive();
+                      uart_sendChar(byte);//send the byte
+                      uart_sendChar('\r');//send the byte
                       if((char)byte=='w')//based on input change what its doing
                       {
                           oi_setWheels(500, 500); // forward
@@ -80,6 +89,56 @@ while (1)
 
 
     }
+
+void turn_clockwise(int power)
+{
+    oi_setWheels(power, -power); //right
+}
+void turn_counterclockwise(int power)
+{
+    oi_setWheels(-power, power); //right
+}
+void turn(power)
+{
+    if(power<0)
+    {
+        turn_counterclockwise(-power);
+    }
+    else
+    {
+        turn_clockwise(power);
+    }
+}
+void turn_angle(int angle,int power, oi_t *sensor_data )
+{
+    int tolerance=20;
+    int power2 =power;
+    int sum=0;
+    int tmp2=0;
+    oi_update(sensor_data);
+    if(angle<0)
+            {
+             power=-power;
+            }
+    while(abs(tmp2-abs(angle))>tolerance)
+    {
+
+        tmp2 += (sensor_data->angle);
+        int tmp =abs(tmp2-angle);
+
+         sum=abs(tmp2-abs(angle));
+         char msg[100];
+         sprintf(msg, "angle %d\n", sum);
+         lcd_printf(msg);
+         uart_sendStr(msg);
+
+         turn(power);
+       //  timer_waitMillis(500);
+       //  oi_setWheels(0,0);//stop
+        oi_update(sensor_data);
+    }
+
+}
 void scan()
 {
 
